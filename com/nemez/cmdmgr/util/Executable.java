@@ -3,13 +3,14 @@ package com.nemez.cmdmgr.util;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.logging.Level;
 
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.nemez.cmdmgr.Command;
+import com.nemez.cmdmgr.CommandManager;
 import com.nemez.cmdmgr.component.ByteComponent;
 import com.nemez.cmdmgr.component.ConstantComponent;
 import com.nemez.cmdmgr.component.DoubleComponent;
@@ -36,20 +37,20 @@ public class Executable implements CommandExecutor {
 		for (HelpPageCommand[] page : help) {
 			for (HelpPageCommand cmd : page) {
 				if (cmd != null) {
-					processLine(cmd.usage.split("\\ "), cmd.permission, cmd.method, methods, methodContainer);
+					processLine(cmd.usage.split("\\ "), cmd.permission, cmd.method, methods, methodContainer, plugin);
 				}
 			}
 		}
 		
-		PluginCommand plcmd = plugin.getCommand(name);
-		if (plcmd == null) {
-			System.out.println("the fuck");
-		}else{
-			plcmd.setExecutor(this);
+		plugin.getCommand(name).setExecutor(this);
+		
+		if (CommandManager.errors) {
+			plugin.getLogger().log(Level.WARNING, "There were parser errors, some commands may not function properly!");
+			CommandManager.errors = false;
 		}
 	}
 	
-	private void processLine(String[] line, String permission, String method, ArrayList<Method> methods, Object methodContainer) {
+	private void processLine(String[] line, String permission, String method, ArrayList<Method> methods, Object methodContainer, JavaPlugin plugin) {
 		ArrayList<ICommandComponent> command = new ArrayList<ICommandComponent>();
 		if (method == null && line[1].equals("help")) {
 			command.add(new ConstantComponent("help"));
@@ -116,7 +117,6 @@ public class Executable implements CommandExecutor {
 					command.add(comp7);
 					break;
 				default:
-					System.err.println("impossible just happened!");
 					return;
 				}
 				int index = 0;
@@ -136,6 +136,8 @@ public class Executable implements CommandExecutor {
 		for (Method m : methods) {
 			Command[] annotations = m.getAnnotationsByType(Command.class);
 			if (annotations == null || annotations.length != 1) {
+				plugin.getLogger().log(Level.WARNING, "Invalid method (" + methodArray[0] + ")");
+				CommandManager.errors = true;
 				System.err.println("Method not found! (" + methodArray[0] + ")");
 				return;
 			}else{
@@ -148,7 +150,8 @@ public class Executable implements CommandExecutor {
 						for (int i = 0; i < params.length; i++) {
 							if (i == 0) {
 								if (params[0] != CommandSender.class) {
-									System.err.println("you're missing the 'CommandSender' argument... it must be first btw");
+									plugin.getLogger().log(Level.WARNING, "Invalid method (" + methodArray[0] + "): First argument is not CommandSender");
+									CommandManager.errors = true;
 									return;
 								}
 							}else{
@@ -168,7 +171,8 @@ public class Executable implements CommandExecutor {
 								}else if (comp instanceof StringComponent && params[i] == String.class) {
 									
 								}else{
-									System.err.println("error yet again, this time you messed up the method inputs");
+									plugin.getLogger().log(Level.WARNING, "Invalid method (" + methodArray[0] + "): Invalid method arguments");
+									CommandManager.errors = true;
 									return;
 								}
 							}
@@ -180,7 +184,8 @@ public class Executable implements CommandExecutor {
 			}
 		}
 		if (target == null) {
-			System.err.println("Method not found! (" + methodArray[0] + ")");
+			plugin.getLogger().log(Level.WARNING, "Invalid method (" + methodArray[0] + "): Method not found");
+			CommandManager.errors = true;
 			return;
 		}
 		ExecutableDefinition def = new ExecutableDefinition(command, permission, target, methodContainer);

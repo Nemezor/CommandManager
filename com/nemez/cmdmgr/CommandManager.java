@@ -3,9 +3,12 @@ package com.nemez.cmdmgr;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.logging.Level;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -81,6 +84,7 @@ import com.nemez.cmdmgr.util.Property;
 public class CommandManager {
 
 	public static boolean debugOutput = false;
+	public static boolean errors = false;
 	
 	public static boolean registerCommand(String cmdSourceCode, Object commandHandler, JavaPlugin plugin) {
 		if (cmdSourceCode == null || commandHandler == null || plugin == null) {
@@ -107,7 +111,27 @@ public class CommandManager {
 			}
 			reader.close();
 		} catch (Exception e) {
-			// TODO log this crap into the console...
+			plugin.getLogger().log(Level.WARNING, "Error while loading command file. (" + sourceFile.getAbsolutePath() + ")");
+			plugin.getLogger().log(Level.WARNING, e.getCause().toString());
+			errors = true;
+			return false;
+		}
+		return registerCommand(src.toString(), commandHandler, plugin);
+	}
+	
+	public static boolean registerCommand(InputStream sourceStream, Object commandHandler, JavaPlugin plugin) {
+		StringBuilder src = new StringBuilder();
+		String buf = "";
+		try {
+			BufferedReader reader = new BufferedReader(new InputStreamReader(sourceStream));
+			while ((buf = reader.readLine()) != null) {
+				src.append(buf);
+			}
+			reader.close();
+		} catch (Exception e) {
+			plugin.getLogger().log(Level.WARNING, "Error while loading command file. (" + sourceStream.toString() + ")");
+			plugin.getLogger().log(Level.WARNING, e.getCause().toString());
+			errors = true;
 			return false;
 		}
 		return registerCommand(src.toString(), commandHandler, plugin);
@@ -137,30 +161,28 @@ public class CommandManager {
 			if (current == ':') {
 				if (insideType) {
 					if (currentArgComp != null) {
-						// error
-						System.err.println("already processing a type");
+						plugin.getLogger().log(Level.WARNING, "Syntax error at line " + line + ": Already defining a type.");
+						errors = true;
 						return false;
 					}else{
 						currentArgComp = resolveComponentType(buffer.toString());
 						buffer = new StringBuilder();
 						if (currentArgComp == null) {
-							// error - invalid type
-							System.err.println("invalid type");
+							plugin.getLogger().log(Level.WARNING, "Type error at line " + line + ": Invalid type.");
+							errors = true;
 							return false;
 						}
 					}
 				}else{
-					// error
-					System.err.println("where do you think a colon belongs...");
-					return false;
+					buffer.append(':');
 				}
 			}else if (current == ';') {
 				if (previous == '\\') {
 					buffer.append(';');
 				}else{
 					if (stack.get() == null) {
-						// error
-						System.err.println("stack is empty...");
+						plugin.getLogger().log(Level.WARNING, "Syntax error at line " + line + ": Not in code section.");
+						errors = true;
 						return false;
 					}
 					if (currentProp == Property.HELP) {
@@ -170,8 +192,8 @@ public class CommandManager {
 					}else if (currentProp == Property.PERMISSION) {
 						stack.get().permission = buffer.toString().trim();
 					}else{
-						// what?
-						System.err.println("okay, this is my fault");
+						plugin.getLogger().log(Level.WARNING, "Attribute error at line " + line + ": Invalid attribute type.");
+						errors = true;
 						return false;
 					}
 					currentProp = Property.NONE;
@@ -202,8 +224,8 @@ public class CommandManager {
 				bracketCounter--;
 				ChainComponent popped = stack.pop();
 				if (popped == null) {
-					// error
-					System.err.println("outta stacks!");
+					plugin.getLogger().log(Level.WARNING, "Syntax error at line " + line + ": Too many closing brackets.");
+					errors = true;
 					return false;
 				}
 				if (bracketCounter == 0) {
@@ -252,8 +274,8 @@ public class CommandManager {
 				if (currentProp != Property.NONE) {
 					buffer.append('[');
 				}else if (insideType) {
-					// error
-					System.err.println("dont declare a type inside of a type please");
+					plugin.getLogger().log(Level.WARNING, "Syntax error at line " + line + ": Invalid type declaration.");
+					errors = true;
 					return false;
 				}else{
 					insideType = true;
@@ -264,16 +286,17 @@ public class CommandManager {
 				}else if (insideType) {
 					insideType = false;
 					if (currentArgComp == null) {
-						// error
-						System.err.println("type without a type?");
+						// this should never happen though, it should error out at the top when the type is ""
+						plugin.getLogger().log(Level.WARNING, "Type error at line " + line + ": Type has to type?");
+						errors = true;
 						return false;
 					}else{
 						currentArgComp.argName = buffer.toString();
 						buffer = new StringBuilder();
 					}
 				}else{
-					// error
-					System.err.println("a square bracket doesnt belong here");
+					plugin.getLogger().log(Level.WARNING, "Syntax error at line " + line + ": Not in type declaration.");
+					errors = true;
 					return false;
 				}
 			}else if (current == '&' && currentProp == Property.HELP) {
