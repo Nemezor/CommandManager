@@ -86,6 +86,12 @@ public class CommandManager {
 	public static boolean debugOutput = false;
 	public static boolean errors = false;
 	
+	public static String helpDescriptionFormatting = "§b";
+	public static String helpUsageFormatting = "§6";
+	public static String helpPageHeaderFormatting = "§a";
+	public static String helpInvalidPageFormatting = "§c";
+	public static String noPermissionFormatting = "§c";
+	
 	public static boolean registerCommand(String cmdSourceCode, Object commandHandler, JavaPlugin plugin) {
 		if (cmdSourceCode == null || commandHandler == null || plugin == null) {
 			return false;

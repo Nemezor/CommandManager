@@ -209,7 +209,7 @@ public class Executable implements CommandExecutor {
 		}else{
 			ExecutableDefinition def = defs.get(0);
 			if (!sender.hasPermission(def.getPermission())) {
-				sender.sendMessage("§cYou do not have permission to execute this command.");
+				sender.sendMessage(CommandManager.noPermissionFormatting + "You do not have permission to execute this command.");
 				return true;
 			}
 			if (def.getLength() != args.length) {
@@ -239,14 +239,14 @@ public class Executable implements CommandExecutor {
 	private void printPage(CommandSender sender, int page) {
 		page--;
 		if (page < 0 || page >= help.size()) {
-			sender.sendMessage("§cNon-existant page (" + (page + 1) + ").\nThere are " + help.size() + " pages.");
+			sender.sendMessage(CommandManager.helpInvalidPageFormatting + "Non-existant page (" + (page + 1) + ").\nThere are " + help.size() + " pages.");
 		}else{
 			HelpPageCommand[] pageData = help.get(page);
-			sender.sendMessage("§a### Help Page " + (page + 1) + "/" + (help.size()) + " ###");
+			sender.sendMessage(CommandManager.helpPageHeaderFormatting + "### Help Page " + (page + 1) + "/" + (help.size()) + " ###");
 			for (HelpPageCommand c : pageData) {
 				if (c != null) {
-					sender.sendMessage("§6" + c.usage);
-					sender.sendMessage("§b" + c.description);
+					sender.sendMessage(CommandManager.helpUsageFormatting + c.usage);
+					sender.sendMessage(CommandManager.helpDescriptionFormatting + c.description);
 				}
 			}
 		}
