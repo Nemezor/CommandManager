@@ -1,12 +1,15 @@
 package com.nemez.cmdmgr.util;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
 
-import org.bukkit.command.CommandExecutor;
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.nemez.cmdmgr.Command;
@@ -22,7 +25,7 @@ import com.nemez.cmdmgr.component.LongComponent;
 import com.nemez.cmdmgr.component.ShortComponent;
 import com.nemez.cmdmgr.component.StringComponent;
 
-public class Executable implements CommandExecutor {
+public class Executable extends org.bukkit.command.Command {
 
 	private ArrayList<ExecutableDefinition> commands;
 	private ArrayList<HelpPageCommand[]> help;
@@ -30,6 +33,7 @@ public class Executable implements CommandExecutor {
 	private JavaPlugin plugin;
 	
 	public Executable(String name, ArrayList<HelpPageCommand[]> help) {
+		super(name);
 		this.help = help;
 		this.name = name;
 		this.commands = new ArrayList<ExecutableDefinition>();
@@ -39,13 +43,26 @@ public class Executable implements CommandExecutor {
 		for (HelpPageCommand[] page : help) {
 			for (HelpPageCommand cmd : page) {
 				if (cmd != null) {
-					processLine(cmd.usage.split("\\ "), cmd.permission, cmd.method, methods, methodContainer, plugin);
+					processLine(cmd.usage.split("\\ "), cmd.permission, cmd.method, methods, methodContainer, plugin, cmd.type);
 				}
 			}
 		}
 		
 		this.plugin = plugin;
-		plugin.getCommand(name).setExecutor(this);
+		try {
+			final Field cmdMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
+			cmdMap.setAccessible(true);
+			CommandMap map = (CommandMap) cmdMap.get(Bukkit.getServer());
+			map.register(name, this);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
 		
 		if (CommandManager.errors) {
 			plugin.getLogger().log(Level.WARNING, "There were parser errors, some commands may not function properly!");
@@ -53,14 +70,14 @@ public class Executable implements CommandExecutor {
 		}
 	}
 	
-	private void processLine(String[] line, String permission, String method, ArrayList<Method> methods, Object methodContainer, JavaPlugin plugin) {
+	private void processLine(String[] line, String permission, String method, ArrayList<Method> methods, Object methodContainer, JavaPlugin plugin, Type etype) {
 		ArrayList<ICommandComponent> command = new ArrayList<ICommandComponent>();
 		if (method == null && line[1].equals("help")) {
 			command.add(new ConstantComponent("help"));
 			IntegerComponent pageID = new IntegerComponent();
 			pageID.argName = "page";
 			command.add(pageID);
-			ExecutableDefinition def = new ExecutableDefinition(command, permission, null, methodContainer);
+			ExecutableDefinition def = new ExecutableDefinition(command, permission, null, methodContainer, Type.BOTH);
 			commands.add(def);
 			return;
 		}
@@ -198,12 +215,15 @@ public class Executable implements CommandExecutor {
 			CommandManager.errors = true;
 			return;
 		}
-		ExecutableDefinition def = new ExecutableDefinition(command, permission, target, methodContainer);
+		if (etype == null) {
+			etype = Type.BOTH;
+		}
+		ExecutableDefinition def = new ExecutableDefinition(command, permission, target, methodContainer, etype);
 		commands.add(def);
 	}
-
+	
 	@Override
-	public boolean onCommand(CommandSender sender, org.bukkit.command.Command cmd, String name, String[] args) {
+	public boolean execute(CommandSender sender, String name, String[] args) {
 		ArrayList<ExecutableDefinition> defs = new ArrayList<ExecutableDefinition>();
 		defs.addAll(commands);
 		for (int i = 0; i < args.length; i++) {
@@ -218,8 +238,33 @@ public class Executable implements CommandExecutor {
 			printPage(sender, 1);
 		}else{
 			ExecutableDefinition def = defs.get(0);
-			if (!sender.hasPermission(def.getPermission())) {
+			for (ExecutableDefinition d : defs) {
+				if (d.isHelp() && args[0].equals("help")) {
+					try {
+						int page = Integer.parseInt(args[1]);
+						printPage(sender, page);
+					} catch (Exception e) {
+						printPage(sender, 1);
+					}
+					return true;
+				}
+			}
+			if (def.getPermission() != null && !sender.hasPermission(def.getPermission())) {
 				sender.sendMessage(CommandManager.noPermissionFormatting + "You do not have permission to execute this command.");
+				return true;
+			}
+			if (def.getExecType() == Type.PLAYER) {
+				if (!(sender instanceof Player)) {
+					sender.sendMessage(CommandManager.notAllowedFormatting + "Only players are allowed to run this command.");
+					return true;
+				}
+			}else if (def.getExecType() == Type.CONSOLE) {
+				if (sender instanceof Player) {
+					sender.sendMessage(CommandManager.notAllowedFormatting + "Only console is allowed to run this command.");
+					return true;
+				}
+			}else if (def.getExecType() == Type.NOBODY) {
+				sender.sendMessage(CommandManager.notAllowedFormatting + "Nobody can run this command.");
 				return true;
 			}
 			if (def.getLength() != args.length) {
@@ -232,14 +277,7 @@ public class Executable implements CommandExecutor {
 					arguments.add(def.get(i, args[i]));
 				}
 			}
-			if (def.isHelp() || args[0].equals("help")) {
-				try {
-					int page = Integer.parseInt(args[1]);
-					printPage(sender, page);
-				} catch (Exception e) {
-					printPage(sender, 1);
-				}
-			}else if (!def.invoke(arguments, sender, plugin)) {
+			if (!def.invoke(arguments, sender, plugin)) {
 				printPage(sender, 1);
 			}
 		}
@@ -254,7 +292,7 @@ public class Executable implements CommandExecutor {
 			HelpPageCommand[] pageData = help.get(page);
 			sender.sendMessage(CommandManager.helpPageHeaderFormatting + "### Help Page " + (page + 1) + "/" + (help.size()) + " ###");
 			for (HelpPageCommand c : pageData) {
-				if (c != null) {
+				if (c != null && (c.permission == null || sender.hasPermission(c.permission))) {
 					sender.sendMessage(CommandManager.helpUsageFormatting + c.usage);
 					sender.sendMessage(CommandManager.helpDescriptionFormatting + c.description);
 				}

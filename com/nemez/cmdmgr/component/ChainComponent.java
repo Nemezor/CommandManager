@@ -2,12 +2,15 @@ package com.nemez.cmdmgr.component;
 
 import java.util.ArrayList;
 
+import com.nemez.cmdmgr.util.Type;
+
 public class ChainComponent implements ICommandComponent {
 
 	private ArrayList<ICommandComponent> components;
 	public String permission;
 	public String help;
 	public String execute;
+	public Type type;
 	
 	public ChainComponent() {
 		components = new ArrayList<ICommandComponent>();

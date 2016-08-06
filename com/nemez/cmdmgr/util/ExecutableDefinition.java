@@ -16,12 +16,14 @@ public class ExecutableDefinition {
 	private String permission;
 	private Method target;
 	private Object methodContainer;
+	private Type type;
 	
-	public ExecutableDefinition(ArrayList<ICommandComponent> cmd, String perm, Method method, Object methodContainer) {
+	public ExecutableDefinition(ArrayList<ICommandComponent> cmd, String perm, Method method, Object methodContainer, Type type) {
 		this.components = cmd;
 		this.permission = perm;
 		this.target = method;
 		this.methodContainer = methodContainer;
+		this.type = type;
 	}
 	
 	public boolean valid(int index, String arg) {
@@ -51,6 +53,10 @@ public class ExecutableDefinition {
 	
 	public String getPermission() {
 		return permission;
+	}
+	
+	public Type getExecType() {
+		return type;
 	}
 	
 	public int getLength() {

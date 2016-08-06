@@ -2,10 +2,3 @@ name: CommandManagerTest
 main: CmdMgrTest
 version: 13.37
 author: Nemes
-commands:
-  home:
-      description: I dont get displayed, but the one below me is important
-      usage: /home
-      permission: home.blabla.idk.might.be.important
-      permission-message: yeah if this ever got displayed xD
- 

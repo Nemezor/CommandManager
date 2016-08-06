@@ -28,6 +28,7 @@ import com.nemez.cmdmgr.util.BranchStack;
 import com.nemez.cmdmgr.util.Executable;
 import com.nemez.cmdmgr.util.HelpPageCommand;
 import com.nemez.cmdmgr.util.Property;
+import com.nemez.cmdmgr.util.Type;
 
 /**
  *  Example command.cmd
@@ -92,6 +93,7 @@ public class CommandManager {
 	public static String helpPageHeaderFormatting = "§a";
 	public static String helpInvalidPageFormatting = "§c";
 	public static String noPermissionFormatting = "§c";
+	public static String notAllowedFormatting = "§c";
 	
 	public static boolean registerCommand(String cmdSourceCode, Object commandHandler, JavaPlugin plugin) {
 		if (cmdSourceCode == null || commandHandler == null || plugin == null) {
@@ -198,6 +200,13 @@ public class CommandManager {
 						stack.get().execute = buffer.toString();
 					}else if (currentProp == Property.PERMISSION) {
 						stack.get().permission = buffer.toString().trim();
+					}else if (currentProp == Property.TYPE) {
+						stack.get().type = resolveExecutionType(buffer.toString().trim());
+						if (stack.get().type == null) {
+							plugin.getLogger().log(Level.WARNING, "Attribute error at line " + line + ": Invalid attribute value. (" + buffer.toString().trim() + ").");
+							errors = true;
+							return false;
+						}
 					}else{
 						plugin.getLogger().log(Level.WARNING, "Attribute error at line " + line + ": Invalid attribute type.");
 						errors = true;
@@ -261,6 +270,8 @@ public class CommandManager {
 						currentProp = Property.EXECUTE;
 					}else if (buffer.toString().equals("perm")) {
 						currentProp = Property.PERMISSION;
+					}else if (buffer.toString().equals("type")) {
+						currentProp = Property.TYPE;
 					}else{
 						if (gettingName && cmdName == null) {
 							cmdName = buffer.toString().trim();
@@ -361,6 +372,24 @@ public class CommandManager {
 		return null;
 	}
 	
+	private static Type resolveExecutionType(String type) {
+		switch (type) {
+		case "player":
+			return Type.PLAYER;
+		case "both":
+		case "any":
+		case "all":
+			return Type.BOTH;
+		case "server":
+		case "console":
+			return Type.CONSOLE;
+		case "none":
+		case "nobody":
+			return Type.NOBODY;
+		}
+		return null;
+	}
+	
 	private static void postProcess(String cmdName, ChainComponent components, ArrayList<Method> methods, JavaPlugin plugin, Object methodContainer) {
 		Executable cmd = new Executable(cmdName, constructHelpPages(cmdName, components));
 		cmd.register(methods, plugin, methodContainer);
@@ -373,7 +402,7 @@ public class CommandManager {
 		HelpPageCommand[] page = new HelpPageCommand[5];
 		
 		for (int i = 0; i < rawLines.length; i++) {
-			if (rawLines[i].length() > 0 && !rawLines[i].equals("\0null\0null\0null\0")) {
+			if (rawLines[i].length() > 0 && !rawLines[i].equals("\0null\0null\0null\0null\0")) {
 				lines.add(rawLines[i]);
 			}
 		}
@@ -386,14 +415,14 @@ public class CommandManager {
 				page = new HelpPageCommand[5];
 			}
 			String[] cmd = lines.get(i).split("\0");
-			page[i % 5] = new HelpPageCommand(cmd[1], "/" + cmdName + " " + cmd[0], cmd[3], cmd[2]);
+			page[i % 5] = new HelpPageCommand(cmd[1], "/" + cmdName + " " + cmd[0], cmd[3], cmd[2], Type.parse(cmd[4]));
 			firstPass = false;
 		}
 		if (i % 5 == 0) {
 			pages.add(page);
 			page = new HelpPageCommand[5];
 		}
-		page[i % 5] = new HelpPageCommand(cmdName + ".help", "/" + cmdName + " help <page:i32>", "Shows help.", null);
+		page[i % 5] = new HelpPageCommand(cmdName + ".help", "/" + cmdName + " help <page:i32>", "Shows help.", null, Type.BOTH);
 		pages.add(page);
 		
 		return pages;
@@ -416,7 +445,7 @@ public class CommandManager {
 					chain += temp;
 				}
 			}
-			data += chain + "\0" + comp.permission + "\0" + comp.execute + "\0" + comp.help + "\0";
+			data += chain + "\0" + comp.permission + "\0" + comp.execute + "\0" + comp.help + "\0" + Type.get(comp.type) + "\0";
 			for (String s : leaves) {
 				data += s;
 			}
