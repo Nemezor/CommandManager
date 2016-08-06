@@ -11,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.nemez.cmdmgr.Command;
 import com.nemez.cmdmgr.CommandManager;
+import com.nemez.cmdmgr.component.BooleanComponent;
 import com.nemez.cmdmgr.component.ByteComponent;
 import com.nemez.cmdmgr.component.ConstantComponent;
 import com.nemez.cmdmgr.component.DoubleComponent;
@@ -26,6 +27,7 @@ public class Executable implements CommandExecutor {
 	private ArrayList<ExecutableDefinition> commands;
 	private ArrayList<HelpPageCommand[]> help;
 	private String name;
+	private JavaPlugin plugin;
 	
 	public Executable(String name, ArrayList<HelpPageCommand[]> help) {
 		this.help = help;
@@ -42,6 +44,7 @@ public class Executable implements CommandExecutor {
 			}
 		}
 		
+		this.plugin = plugin;
 		plugin.getCommand(name).setExecutor(this);
 		
 		if (CommandManager.errors) {
@@ -116,6 +119,11 @@ public class Executable implements CommandExecutor {
 					paramName = comp7.argName;
 					command.add(comp7);
 					break;
+				case "bool":
+					BooleanComponent comp8 = new BooleanComponent();
+					comp8.argName = type[0].substring(1);
+					paramName = comp8.argName;
+					command.add(comp8);
 				default:
 					return;
 				}
@@ -169,6 +177,8 @@ public class Executable implements CommandExecutor {
 								}else if (comp instanceof DoubleComponent && params[i] == double.class) {
 									
 								}else if (comp instanceof StringComponent && params[i] == String.class) {
+									
+								}else if (comp instanceof BooleanComponent && params[i] == boolean.class) {
 									
 								}else{
 									plugin.getLogger().log(Level.WARNING, "Invalid method (" + methodArray[0] + "): Invalid method arguments");
@@ -229,7 +239,7 @@ public class Executable implements CommandExecutor {
 				} catch (Exception e) {
 					printPage(sender, 1);
 				}
-			}else if (!def.invoke(arguments, sender)) {
+			}else if (!def.invoke(arguments, sender, plugin)) {
 				printPage(sender, 1);
 			}
 		}

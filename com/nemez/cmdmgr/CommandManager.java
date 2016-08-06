@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.nemez.cmdmgr.component.ArgumentComponent;
+import com.nemez.cmdmgr.component.BooleanComponent;
 import com.nemez.cmdmgr.component.ByteComponent;
 import com.nemez.cmdmgr.component.ChainComponent;
 import com.nemez.cmdmgr.component.ConstantComponent;
@@ -353,6 +354,9 @@ public class CommandManager {
 			return new FloatComponent();
 		case "double":
 			return new DoubleComponent();
+		case "bool":
+		case "boolean":
+			return new BooleanComponent();
 		}
 		return null;
 	}

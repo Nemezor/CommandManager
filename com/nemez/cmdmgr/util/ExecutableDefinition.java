@@ -2,8 +2,10 @@ package com.nemez.cmdmgr.util;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.logging.Level;
 
 import org.bukkit.command.CommandSender;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import com.nemez.cmdmgr.component.ArgumentComponent;
 import com.nemez.cmdmgr.component.ICommandComponent;
@@ -55,7 +57,7 @@ public class ExecutableDefinition {
 		return components.size();
 	}
 	
-	public boolean invoke(ArrayList<Object> args, CommandSender sender) {
+	public boolean invoke(ArrayList<Object> args, CommandSender sender, JavaPlugin plugin) {
 		if (target == null) {
 			return false;
 		}
@@ -72,7 +74,7 @@ public class ExecutableDefinition {
 				return (boolean) target.invoke(methodContainer, arguments);
 			}
 		} catch (Exception e) {
-			System.err.println("M8 you're missing a function...");
+			plugin.getLogger().log(Level.WARNING, "Runtime Error: invalid method");
 			e.printStackTrace();
 			return true;
 		}
