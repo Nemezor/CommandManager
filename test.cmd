@@ -10,6 +10,7 @@ command home {
 		run home_set name;
 		perm home.set;
 		help Sets a new home;
+		type none;
 	}
 	del [string:name] {
 		run home_del name;

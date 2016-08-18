@@ -44,6 +44,22 @@ public class Executable extends org.bukkit.command.Command {
 			for (HelpPageCommand cmd : page) {
 				if (cmd != null) {
 					processLine(cmd.usage.split("\\ "), cmd.permission, cmd.method, methods, methodContainer, plugin, cmd.type);
+					if (CommandManager.debugHelpMenu) {
+						continue;
+					}
+					String newUsage = "";
+					boolean ignore = false;
+					for (char c : cmd.usage.toCharArray()) {
+						if (c == ':' || c == '>') {
+							ignore = !ignore;
+							if (c == '>') {
+								newUsage += c;
+							}
+						}else if (!ignore) {
+							newUsage += c;
+						}
+					}
+					cmd.usage = newUsage;
 				}
 			}
 		}
@@ -169,7 +185,7 @@ public class Executable extends org.bukkit.command.Command {
 				if (annotations[0].hook().equals(methodArray[0])) {
 					Class<?>[] params = m.getParameterTypes();
 					if (params.length -1 != methodParams.size()) {
-						System.err.println("error again! :D");
+						plugin.getLogger().log(Level.WARNING, "Invalid method (" + methodArray[0] + "): Arguments don't match");
 						return;
 					}else{
 						for (int i = 0; i < params.length; i++) {
@@ -292,9 +308,13 @@ public class Executable extends org.bukkit.command.Command {
 			HelpPageCommand[] pageData = help.get(page);
 			sender.sendMessage(CommandManager.helpPageHeaderFormatting + "### Help Page " + (page + 1) + "/" + (help.size()) + " ###");
 			for (HelpPageCommand c : pageData) {
-				if (c != null && (c.permission == null || sender.hasPermission(c.permission))) {
-					sender.sendMessage(CommandManager.helpUsageFormatting + c.usage);
-					sender.sendMessage(CommandManager.helpDescriptionFormatting + c.description);
+				if (c != null) {
+					if (c.type == null || c.type == Type.BOTH || (c.type == Type.CONSOLE && !(sender instanceof Player)) || (c.type == Type.PLAYER && sender instanceof Player)) {
+						if (c.permission == null || sender.hasPermission(c.permission)) {
+							sender.sendMessage(CommandManager.helpUsageFormatting + c.usage);
+							sender.sendMessage(CommandManager.helpDescriptionFormatting + c.description);
+						}
+					}
 				}
 			}
 		}

@@ -85,7 +85,7 @@ import com.nemez.cmdmgr.util.Type;
 
 public class CommandManager {
 
-	public static boolean debugOutput = false;
+	public static boolean debugHelpMenu = false;
 	public static boolean errors = false;
 	
 	public static String helpDescriptionFormatting = "§b";
@@ -244,6 +244,16 @@ public class CommandManager {
 					errors = true;
 					return false;
 				}
+				for (ICommandComponent comp : popped.getComponents()) {
+					if (comp instanceof ChainComponent) {
+						if (((ChainComponent) comp).type == null) {
+							((ChainComponent) comp).type = popped.type;
+						}
+						if (((ChainComponent) comp).permission == null) {
+							((ChainComponent) comp).permission = popped.permission;
+						}
+					}
+				}
 				if (bracketCounter == 0) {
 					postProcess(cmdName, popped, methods, plugin, methodContainer); // \o/
 					buffer = new StringBuilder();
@@ -305,7 +315,7 @@ public class CommandManager {
 					insideType = false;
 					if (currentArgComp == null) {
 						// this should never happen though, it should error out at the top when the type is ""
-						plugin.getLogger().log(Level.WARNING, "Type error at line " + line + ": Type has to type?");
+						plugin.getLogger().log(Level.WARNING, "Type error at line " + line + ": Type has no type?");
 						errors = true;
 						return false;
 					}else{
@@ -391,6 +401,10 @@ public class CommandManager {
 	}
 	
 	private static void postProcess(String cmdName, ChainComponent components, ArrayList<Method> methods, JavaPlugin plugin, Object methodContainer) {
+		components.execute = null;
+		components.help = null;
+		components.permission = null;
+		components.type = null;
 		Executable cmd = new Executable(cmdName, constructHelpPages(cmdName, components));
 		cmd.register(methods, plugin, methodContainer);
 	}
@@ -445,7 +459,7 @@ public class CommandManager {
 					chain += temp;
 				}
 			}
-			data += chain + "\0" + comp.permission + "\0" + comp.execute + "\0" + comp.help + "\0" + Type.get(comp.type) + "\0";
+			data += chain + "\0" + ((comp.permission == null || comp.permission.equals("-none-")) ? null : comp.permission) + "\0" + comp.execute + "\0" + comp.help + "\0" + Type.get(comp.type) + "\0";
 			for (String s : leaves) {
 				data += s;
 			}
