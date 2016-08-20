@@ -4,21 +4,18 @@ public class BooleanComponent extends ArgumentComponent {
 	
 	@Override
 	public Object get(String input) {
-		try {
-			return Boolean.parseBoolean(input);
-		} catch (NumberFormatException e) {
-			return null;
+		if (input.toLowerCase().equals("true") || input.toLowerCase().equals("yes")) {
+			return true;
 		}
+		return false;
 	}
 
 	@Override
 	public boolean valid(String input) {
-		try {
-			Boolean.parseBoolean(input);
+		if (input.toLowerCase().equals("true") || input.toLowerCase().equals("false") || input.toLowerCase().equals("yes") || input.toLowerCase().equals("no")) {
 			return true;
-		} catch (NumberFormatException e) {
-			return false;
 		}
+		return false;
 	}
 	
 	@Override
