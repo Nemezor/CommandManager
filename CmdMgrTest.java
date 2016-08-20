@@ -10,7 +10,6 @@ import com.nemez.cmdmgr.CommandManager;
 public class CmdMgrTest extends JavaPlugin {
 
 	public void onEnable() {
-		CommandManager.debugHelpMenu = true;
 		CommandManager.registerCommand(new File("plugins/test.cmd"), this, this);
 	}
 	

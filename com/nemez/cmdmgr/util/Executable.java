@@ -262,12 +262,49 @@ public class Executable extends org.bukkit.command.Command {
 	}
 	
 	@Override
-	public boolean execute(CommandSender sender, String name, String[] args) {
+	public boolean execute(CommandSender sender, String name, String[] args_) {
+		char[] rawArgs = (String.join(" ", args_) + ' ').toCharArray();
+		int argSize = 0;
+		char last = '\0';
+		boolean inString = false;
+		
+		for (char c : rawArgs) {
+			if (c == '"') {
+				if (last != '\\') {
+					inString = !inString;
+				}
+			}else if (c == ' ' && !inString) {
+				argSize++;
+			}
+			last = c;
+		}
+		last = '\0';
+		String[] args = new String[argSize];
+		String buffer = "";
+		int index = 0;
+
+		for (char c : rawArgs) {
+			if (c == '"') {
+				if (last != '\\') {
+					inString = !inString;
+				}else{
+					buffer = buffer.substring(0, buffer.length() - 1) + '"';
+				}
+			}else if (c == ' ' && !inString) {
+				args[index] = buffer;
+				buffer = "";
+				index++;
+			}else{
+				buffer += c;
+			}
+			last = c;
+		}
+		
 		ArrayList<ExecutableDefinition> defs = new ArrayList<ExecutableDefinition>();
 		defs.addAll(commands);
 		defLoop: for (int j = 0; j < defs.size(); j++) {
-			int i = 0;
-			for (int k = 0; i < args.length; i++, k++) {
+			int i = 0, k = 0;
+			for (; i < args.length; i++, k++) {
 				if (!defs.get(j).valid(k, args[i])) {
 					if (!defs.get(j).isOptional(k)) {
 						defs.remove(j);
@@ -279,7 +316,7 @@ public class Executable extends org.bukkit.command.Command {
 					}
 				}
 			}
-			if (i != args.length) {
+			if (k != defs.get(j).getLength()) {
 				defs.remove(j);
 				j--;
 			}
