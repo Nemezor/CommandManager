@@ -12,8 +12,8 @@ command home {
 		help Sets a new home;
 		type none;
 	}
-	del [string:name] {
-		run home_del name;
+	del [optional:-a] [string:name] {
+		run home_del name -a;
 		help Deletes a home\n&cCannot be undone!;
 		perm home.del;
 	}

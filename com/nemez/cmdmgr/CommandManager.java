@@ -22,6 +22,7 @@ import com.nemez.cmdmgr.component.FloatComponent;
 import com.nemez.cmdmgr.component.ICommandComponent;
 import com.nemez.cmdmgr.component.IntegerComponent;
 import com.nemez.cmdmgr.component.LongComponent;
+import com.nemez.cmdmgr.component.OptionalComponent;
 import com.nemez.cmdmgr.component.ShortComponent;
 import com.nemez.cmdmgr.component.StringComponent;
 import com.nemez.cmdmgr.util.BranchStack;
@@ -378,6 +379,10 @@ public class CommandManager {
 		case "bool":
 		case "boolean":
 			return new BooleanComponent();
+		case "optional":
+		case "opt":
+		case "flag":
+			return new OptionalComponent();
 		}
 		return null;
 	}

@@ -10,6 +10,7 @@ import com.nemez.cmdmgr.CommandManager;
 public class CmdMgrTest extends JavaPlugin {
 
 	public void onEnable() {
+		CommandManager.debugHelpMenu = true;
 		CommandManager.registerCommand(new File("plugins/test.cmd"), this, this);
 	}
 	
@@ -32,9 +33,10 @@ public class CmdMgrTest extends JavaPlugin {
 	}
 	
 	@Command(hook="home_del")
-	public void executeDelHome(CommandSender sender, String name) {
+	public void executeDelHome(CommandSender sender, String name, boolean aFlag) {
 		sender.sendMessage("You executed:");
 		sender.sendMessage("/home del " + name);
+		sender.sendMessage("-a - " + aFlag);
 	}
 	
 	@Command(hook="home_list")

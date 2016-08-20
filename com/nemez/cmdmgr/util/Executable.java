@@ -22,6 +22,7 @@ import com.nemez.cmdmgr.component.FloatComponent;
 import com.nemez.cmdmgr.component.ICommandComponent;
 import com.nemez.cmdmgr.component.IntegerComponent;
 import com.nemez.cmdmgr.component.LongComponent;
+import com.nemez.cmdmgr.component.OptionalComponent;
 import com.nemez.cmdmgr.component.ShortComponent;
 import com.nemez.cmdmgr.component.StringComponent;
 
@@ -44,19 +45,34 @@ public class Executable extends org.bukkit.command.Command {
 			for (HelpPageCommand cmd : page) {
 				if (cmd != null) {
 					processLine(cmd.usage.split("\\ "), cmd.permission, cmd.method, methods, methodContainer, plugin, cmd.type);
-					if (CommandManager.debugHelpMenu) {
-						continue;
-					}
 					String newUsage = "";
+					String buffer = "";
+					String typeBuffer = "";
 					boolean ignore = false;
+					boolean toBuffer = false;
 					for (char c : cmd.usage.toCharArray()) {
-						if (c == ':' || c == '>') {
-							ignore = !ignore;
-							if (c == '>') {
+						if (c == '<') {
+							toBuffer = true;
+						}else if (c == ':') {
+							toBuffer = false;
+							ignore = true;
+						}else if (c == '>') {
+							ignore = false;
+							if (typeBuffer.equals("flag")) {
+								newUsage += '[' + buffer + (CommandManager.debugHelpMenu ? ':' + typeBuffer : "") + ']';
+							}else{
+								newUsage += '<' + buffer + (CommandManager.debugHelpMenu ? ':' + typeBuffer : "") + '>';
+							}
+							buffer = "";
+							typeBuffer = "";
+						}else{
+							if (toBuffer) {
+								buffer += c;
+							}else if (ignore) {
+								typeBuffer += c;
+							}else{
 								newUsage += c;
 							}
-						}else if (!ignore) {
-							newUsage += c;
 						}
 					}
 					cmd.usage = newUsage;
@@ -70,13 +86,8 @@ public class Executable extends org.bukkit.command.Command {
 			cmdMap.setAccessible(true);
 			CommandMap map = (CommandMap) cmdMap.get(Bukkit.getServer());
 			map.register(name, this);
-		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
+		} catch (Exception e) {
+			plugin.getLogger().log(Level.SEVERE, "Failed to register command '" + name + "'!");
 			e.printStackTrace();
 		}
 		
@@ -93,7 +104,7 @@ public class Executable extends org.bukkit.command.Command {
 			IntegerComponent pageID = new IntegerComponent();
 			pageID.argName = "page";
 			command.add(pageID);
-			ExecutableDefinition def = new ExecutableDefinition(command, permission, null, methodContainer, Type.BOTH);
+			ExecutableDefinition def = new ExecutableDefinition(command, null, permission, null, methodContainer, Type.BOTH);
 			commands.add(def);
 			return;
 		}
@@ -101,6 +112,7 @@ public class Executable extends org.bukkit.command.Command {
 		method = method.trim() + " ";
 		String[] methodArray = method.split(" ");
 		Method target = null;
+		ArrayList<Integer> links = new ArrayList<Integer>();
 		
 		for (String s : line) {
 			if (s.contains("/")) {
@@ -157,6 +169,13 @@ public class Executable extends org.bukkit.command.Command {
 					comp8.argName = type[0].substring(1);
 					paramName = comp8.argName;
 					command.add(comp8);
+					break;
+				case "flag":
+					OptionalComponent comp9 = new OptionalComponent();
+					comp9.argName = type[0].substring(1);
+					paramName = comp9.argName;
+					command.add(comp9);
+					break;
 				default:
 					return;
 				}
@@ -165,6 +184,8 @@ public class Executable extends org.bukkit.command.Command {
 					if (methodArray[i] != null && !methodArray[i].trim().equals("")) {
 						if (methodArray[i].trim().equals(paramName)) {
 							methodParams.put(index, command.get(command.size() - 1));
+							links.add(index);
+							break;
 						}
 						index++;
 					}
@@ -179,13 +200,13 @@ public class Executable extends org.bukkit.command.Command {
 			if (annotations == null || annotations.length != 1) {
 				plugin.getLogger().log(Level.WARNING, "Invalid method (" + methodArray[0] + ")");
 				CommandManager.errors = true;
-				System.err.println("Method not found! (" + methodArray[0] + ")");
 				return;
 			}else{
 				if (annotations[0].hook().equals(methodArray[0])) {
 					Class<?>[] params = m.getParameterTypes();
 					if (params.length -1 != methodParams.size()) {
 						plugin.getLogger().log(Level.WARNING, "Invalid method (" + methodArray[0] + "): Arguments don't match");
+						CommandManager.errors = true;
 						return;
 					}else{
 						for (int i = 0; i < params.length; i++) {
@@ -213,6 +234,8 @@ public class Executable extends org.bukkit.command.Command {
 									
 								}else if (comp instanceof BooleanComponent && params[i] == boolean.class) {
 									
+								}else if (comp instanceof OptionalComponent && params[i] == boolean.class) {
+									
 								}else{
 									plugin.getLogger().log(Level.WARNING, "Invalid method (" + methodArray[0] + "): Invalid method arguments");
 									CommandManager.errors = true;
@@ -234,7 +257,7 @@ public class Executable extends org.bukkit.command.Command {
 		if (etype == null) {
 			etype = Type.BOTH;
 		}
-		ExecutableDefinition def = new ExecutableDefinition(command, permission, target, methodContainer, etype);
+		ExecutableDefinition def = new ExecutableDefinition(command, links, permission, target, methodContainer, etype);
 		commands.add(def);
 	}
 	
@@ -242,12 +265,23 @@ public class Executable extends org.bukkit.command.Command {
 	public boolean execute(CommandSender sender, String name, String[] args) {
 		ArrayList<ExecutableDefinition> defs = new ArrayList<ExecutableDefinition>();
 		defs.addAll(commands);
-		for (int i = 0; i < args.length; i++) {
-			for (int j = 0; j < defs.size(); j++) {
-				if (!defs.get(j).valid(i, args[i])) {
-					defs.remove(j);
-					j--;
+		defLoop: for (int j = 0; j < defs.size(); j++) {
+			int i = 0;
+			for (int k = 0; i < args.length; i++, k++) {
+				if (!defs.get(j).valid(k, args[i])) {
+					if (!defs.get(j).isOptional(k)) {
+						defs.remove(j);
+						j--;
+						continue defLoop;
+					}else{
+						i--;
+						continue;
+					}
 				}
+			}
+			if (i != args.length) {
+				defs.remove(j);
+				j--;
 			}
 		}
 		if (args.length == 0 || defs.size() == 0) {
@@ -283,17 +317,22 @@ public class Executable extends org.bukkit.command.Command {
 				sender.sendMessage(CommandManager.notAllowedFormatting + "Nobody can run this command.");
 				return true;
 			}
-			if (def.getLength() != args.length) {
-				printPage(sender, 1);
-				return true;
-			}
 			ArrayList<Object> arguments = new ArrayList<Object>();
-			for (int i = 0; i < args.length; i++) {
-				if (def.isArgument(i)) {
-					arguments.add(def.get(i, args[i]));
+			for (int i = 0, j = 0; i < args.length; i++, j++) {
+				if (def.isArgument(j)) {
+					if (def.valid(j, args[i])) {
+						arguments.add(def.get(j, args[i]));
+					}else if (def.isOptional(j)) {
+						arguments.add(false);
+						i--;
+					}
 				}
 			}
-			if (!def.invoke(arguments, sender, plugin)) {
+			Object[] linkedArgs = new Object[arguments.size() + 1];
+			for (int i = 0; i < arguments.size(); i++) {
+				linkedArgs[def.getLink(i) + 1] = arguments.get(i);
+			}
+			if (!def.invoke(linkedArgs, sender, plugin)) {
 				printPage(sender, 1);
 			}
 		}
