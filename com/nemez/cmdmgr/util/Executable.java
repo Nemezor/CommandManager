@@ -160,7 +160,8 @@ public class Executable extends org.bukkit.command.Command {
 					break;
 				case "str":
 					StringComponent comp7 = new StringComponent();
-					comp7.argName = type[0].substring(1);
+					comp7.argName = type[0].substring(1).replace("...", "");
+					comp7.infinite = type[0].substring(1).contains("...");
 					paramName = comp7.argName;
 					command.add(comp7);
 					break;
@@ -316,7 +317,7 @@ public class Executable extends org.bukkit.command.Command {
 					}
 				}
 			}
-			if (k != defs.get(j).getLength()) {
+			if (k != defs.get(j).getLength(k)) {
 				defs.remove(j);
 				j--;
 			}
@@ -365,9 +366,14 @@ public class Executable extends org.bukkit.command.Command {
 					}
 				}
 			}
-			Object[] linkedArgs = new Object[arguments.size() + 1];
+			Object[] linkedArgs = new Object[def.getNumOfArgs() + 1];
 			for (int i = 0; i < arguments.size(); i++) {
-				linkedArgs[def.getLink(i) + 1] = arguments.get(i);
+				int link = def.getLink(i) + 1;
+				if (linkedArgs[link] != null) {
+					linkedArgs[link] = linkedArgs[link].toString() + " " + arguments.get(i).toString();
+				}else{
+					linkedArgs[link] = arguments.get(i);
+				}
 			}
 			if (!def.invoke(linkedArgs, sender, plugin)) {
 				printPage(sender, 1);

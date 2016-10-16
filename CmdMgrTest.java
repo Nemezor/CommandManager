@@ -52,7 +52,7 @@ public class CmdMgrTest extends JavaPlugin {
 	
 	@Command(hook="noskope")
 	public boolean executeMagik(CommandSender sender) {
-		sender.sendMessage("You executed:");
+		sender.sendMessage("You executed!!!!!!!!!:");
 		sender.sendMessage("/home yolo swag");
 		return true;
 	}

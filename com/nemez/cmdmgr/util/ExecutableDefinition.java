@@ -11,6 +11,7 @@ import com.nemez.cmdmgr.CommandManager;
 import com.nemez.cmdmgr.component.ArgumentComponent;
 import com.nemez.cmdmgr.component.ICommandComponent;
 import com.nemez.cmdmgr.component.OptionalComponent;
+import com.nemez.cmdmgr.component.StringComponent;
 
 public class ExecutableDefinition {
 
@@ -31,22 +32,58 @@ public class ExecutableDefinition {
 	}
 	
 	public boolean valid(int index, String arg) {
-		if (index < 0 || index >= components.size()) {
+		if (index < 0) {
 			return false;
+		}
+		if (index >= components.size()) {
+			if (components.get(components.size() - 1) instanceof StringComponent) {
+				StringComponent strComp = (StringComponent) components.get(components.size() - 1);
+				if (strComp.infinite) {
+					return strComp.valid(arg);
+				}else{
+					return false;
+				}
+			}else{
+				return false;
+			}
 		}
 		return components.get(index).valid(arg);
 	}
 
 	public Object get(int index, String arg) {
-		if (index < 0 || index >= components.size()) {
+		if (index < 0) {
 			return null;
+		}
+		if (index >= components.size()) {
+			if (components.get(components.size() - 1) instanceof StringComponent) {
+				StringComponent strComp = (StringComponent) components.get(components.size() - 1);
+				if (strComp.infinite) {
+					return strComp.get(arg);
+				}else{
+					return null;
+				}
+			}else{
+				return null;
+			}
 		}
 		return components.get(index).get(arg);
 	}
 	
 	public boolean isArgument(int index) {
-		if (index < 0 || index >= components.size()) {
+		if (index < 0) {
 			return false;
+		}
+		if (index >= components.size()) {
+			if (components.get(components.size() - 1) instanceof StringComponent) {
+				StringComponent strComp = (StringComponent) components.get(components.size() - 1);
+				if (strComp.infinite) {
+					return true;
+				}else{
+					return false;
+				}
+			}else{
+				return false;
+			}
 		}
 		return components.get(index) instanceof ArgumentComponent;
 	}
@@ -70,13 +107,43 @@ public class ExecutableDefinition {
 		return type;
 	}
 	
-	public int getLength() {
+	public int getLength(int argSize) {
+		if (argSize >= components.size()) {
+			if (components.get(components.size() - 1) instanceof StringComponent) {
+				StringComponent strComp = (StringComponent) components.get(components.size() - 1);
+				if (strComp.infinite) {
+					return argSize;
+				}
+			}
+		}
 		return components.size();
 	}
 	
+	public int getNumOfArgs() {
+		int counter = 0;
+		for (ICommandComponent c : components) {
+			if (c instanceof ArgumentComponent) {
+				counter++;
+			}
+		}
+		return counter;
+	}
+	
 	public int getLink(int i) {
-		if (i < 0 || i > paramLinks.size()) {
+		if (i < 0) {
 			return i;
+		}
+		if (i >= paramLinks.size()) {
+			if (components.get(components.size() - 1) instanceof StringComponent) {
+				StringComponent strComp = (StringComponent) components.get(components.size() - 1);
+				if (strComp.infinite) {
+					return paramLinks.get(paramLinks.size() - 1);
+				}else{
+					return i;
+				}
+			}else{
+				return i;
+			}
 		}
 		return paramLinks.get(i);
 	}

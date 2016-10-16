@@ -92,12 +92,12 @@ public class CommandManager {
 	public static boolean errors = false;
 
 	/* Switches for color and formatting in the built-in help message and pagination text */
-	public static String helpDescriptionFormatting = "§b";
-	public static String helpUsageFormatting = "§6";
-	public static String helpPageHeaderFormatting = "§a";
-	public static String helpInvalidPageFormatting = "§c";
-	public static String noPermissionFormatting = "§c";
-	public static String notAllowedFormatting = "§c";
+	public static String helpDescriptionFormatting = "ï¿½b";
+	public static String helpUsageFormatting = "ï¿½6";
+	public static String helpPageHeaderFormatting = "ï¿½a";
+	public static String helpInvalidPageFormatting = "ï¿½c";
+	public static String noPermissionFormatting = "ï¿½c";
+	public static String notAllowedFormatting = "ï¿½c";
 	
 	/**
 	 * Registers a command from a String of source code
@@ -210,6 +210,8 @@ public class CommandManager {
 		int bracketCounter = 0;
 		/* line counter */
 		int line = 0;
+		// buffer for '...' and '"' properties of string types
+		StringBuilder sideBuffer = new StringBuilder();
 
 		/* iterate over all characters */
 		for (int i = 0; i < chars.length; i++) {
@@ -234,7 +236,7 @@ public class CommandManager {
 						errors = true;
 						return false;
 					}else{
-						/* okay, resolved what type this is */
+						/* okay, resolve what type this is */
 						currentArgComp = resolveComponentType(buffer.toString());
 						buffer = new StringBuilder();
 						/* type didn't fit any definition, throw an error */
@@ -439,6 +441,11 @@ public class CommandManager {
 						/* set the value of the current type and reset the buffer */
 						currentArgComp.argName = buffer.toString();
 						buffer = new StringBuilder();
+						if (currentArgComp instanceof StringComponent) {
+							StringComponent strComp = (StringComponent) currentArgComp;
+							strComp.infinite = sideBuffer.toString().contains("...");
+						}
+						sideBuffer = new StringBuilder();
 					}
 				}else{
 					/* we are not defining a type, throw an error */
@@ -452,7 +459,7 @@ public class CommandManager {
 					buffer.append('&');
 				}else{
 					/* for color codes and formatting */
-					buffer.append('§');
+					buffer.append('ï¿½');
 				}
 			}else if (current == 'n' && currentProp == Property.HELP) {
 				if (previous == '\\') {
@@ -471,7 +478,17 @@ public class CommandManager {
 					buffer.append('\\');
 				}
 			}else if (current != '\r' && current != '\n' && current != '\t') {
-				buffer.append(current);
+				if (currentArgComp != null && current == '.') {
+					if (currentArgComp instanceof StringComponent) {
+						sideBuffer.append(current);
+					}else{
+						plugin.getLogger().log(Level.WARNING, "Syntax error at line " + line + ": '...' is invalid for non-string types.");
+						errors = true;
+						return false;
+					}
+				}else{
+					buffer.append(current);
+				}
 			}
 			previous = current;
 		}
