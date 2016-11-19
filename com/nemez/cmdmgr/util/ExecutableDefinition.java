@@ -109,6 +109,9 @@ public class ExecutableDefinition {
 	}
 	
 	public int getLength(int argSize) {
+		if (components.size() == 0) {
+			return 0;
+		}
 		if (argSize >= components.size()) {
 			if (components.get(components.size() - 1) instanceof StringComponent) {
 				StringComponent strComp = (StringComponent) components.get(components.size() - 1);

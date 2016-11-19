@@ -17,6 +17,12 @@ public class CmdMgrTest extends JavaPlugin {
 		
 	}
 	
+	@Command(hook="home_empty")
+	public boolean executeHomeNull(CommandSender sender) {
+		sender.sendMessage("You executed an empty /home");
+		return true;
+	}
+	
 	@Command(hook="home_set")
 	public boolean executeSetHome(CommandSender sender, String name) {
 		sender.sendMessage("You executed:");

@@ -10,7 +10,7 @@ public class HelpPageCommand {
 	
 	public HelpPageCommand(String perm, String usage, String description, String method, Type type) {
 		this.permission = perm;
-		this.usage = usage;
+		this.usage = usage.replaceAll("<empty>", "");
 		this.description = description;
 		this.method = method;
 		this.type = type;

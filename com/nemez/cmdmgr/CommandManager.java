@@ -18,6 +18,7 @@ import com.nemez.cmdmgr.component.ByteComponent;
 import com.nemez.cmdmgr.component.ChainComponent;
 import com.nemez.cmdmgr.component.ConstantComponent;
 import com.nemez.cmdmgr.component.DoubleComponent;
+import com.nemez.cmdmgr.component.EmptyComponent;
 import com.nemez.cmdmgr.component.FloatComponent;
 import com.nemez.cmdmgr.component.ICommandComponent;
 import com.nemez.cmdmgr.component.IntegerComponent;
@@ -433,10 +434,16 @@ public class CommandManager {
 					insideType = false;
 					/* current argument type is null, throw an error */
 					if (currentArgComp == null) {
-						/* should never happen */
-						plugin.getLogger().log(Level.WARNING, "Type error at line " + line + ": Type has no type?");
-						errors = true;
-						return false;
+						currentArgComp = resolveComponentType(buffer.toString());
+						buffer = new StringBuilder();
+						if (currentArgComp instanceof EmptyComponent) {
+							
+						}else{
+							/* should never happen */
+							plugin.getLogger().log(Level.WARNING, "Type error at line " + line + ": Type has no type?");
+							errors = true;
+							return false;
+						}
 					}else{
 						/* set the value of the current type and reset the buffer */
 						currentArgComp.argName = buffer.toString();
@@ -519,6 +526,9 @@ public class CommandManager {
 		case "opt":
 		case "flag":
 			return new OptionalComponent();
+		case "empty":
+		case "null":
+			return new EmptyComponent();
 		}
 		return null;
 	}

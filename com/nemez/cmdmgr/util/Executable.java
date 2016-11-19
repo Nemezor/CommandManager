@@ -193,7 +193,11 @@ public class Executable extends org.bukkit.command.Command {
 					}
 				}
 			}else{
-				command.add(new ConstantComponent(s));
+				if (s.equals("<empty>")) {
+					
+				}else{
+					command.add(new ConstantComponent(s));
+				}
 			}
 		}
 		
@@ -265,65 +269,84 @@ public class Executable extends org.bukkit.command.Command {
 	
 	@Override
 	public boolean execute(CommandSender sender, String name, String[] args_) {
-		char[] rawArgs = (String.join(" ", args_) + ' ').toCharArray();
-		int argSize = 0;
-		char last = '\0';
-		boolean inString = false;
-		
-		for (char c : rawArgs) {
-			if (c == '"') {
-				if (last != '\\') {
-					inString = !inString;
+		String[] args;
+		if (args_.length == 0) {
+			args = new String[0];
+		}else{
+			char[] rawArgs = (String.join(" ", args_) + ' ').toCharArray();
+			int argSize = 0;
+			char last = '\0';
+			boolean inString = false;
+			
+			for (char c : rawArgs) {
+				if (c == '"') {
+					if (last != '\\') {
+						inString = !inString;
+					}
+				}else if (c == ' ' && !inString) {
+					argSize++;
 				}
-			}else if (c == ' ' && !inString) {
-				argSize++;
+				last = c;
 			}
-			last = c;
-		}
-		last = '\0';
-		String[] args = new String[argSize];
-		String buffer = "";
-		int index = 0;
+			last = '\0';
+			args = new String[argSize];
+			String buffer = "";
+			int index = 0;
 
-		for (char c : rawArgs) {
-			if (c == '"') {
-				if (last != '\\') {
-					inString = !inString;
-				}else{
-					buffer = buffer.substring(0, buffer.length() - 1) + '"';
-				}
-			}else if (c == ' ' && !inString) {
-				args[index] = buffer;
-				buffer = "";
-				index++;
-			}else{
-				buffer += c;
-			}
-			last = c;
-		}
-		
-		ArrayList<ExecutableDefinition> defs = new ArrayList<ExecutableDefinition>();
-		defs.addAll(commands);
-		defLoop: for (int j = 0; j < defs.size(); j++) {
-			int i = 0, k = 0;
-			for (; i < args.length; i++, k++) {
-				if (!defs.get(j).valid(k, args[i])) {
-					if (!defs.get(j).isOptional(k)) {
-						defs.remove(j);
-						j--;
-						continue defLoop;
+			for (char c : rawArgs) {
+				if (c == '"') {
+					if (last != '\\') {
+						inString = !inString;
 					}else{
-						i--;
-						continue;
+						buffer = buffer.substring(0, buffer.length() - 1) + '"';
+					}
+				}else if (c == ' ' && !inString) {
+					args[index] = buffer;
+					buffer = "";
+					index++;
+				}else{
+					buffer += c;
+				}
+				last = c;
+			}
+		}
+		ArrayList<ExecutableDefinition> defs = new ArrayList<ExecutableDefinition>();
+		
+		if (args.length == 0) {
+			for (ExecutableDefinition d : commands) {
+				if (d.getLength(0) == 0) {
+					defs.add(d);
+					break;
+				}
+			}
+		}else{
+			defs.addAll(commands);
+			defLoop: for (int j = 0; j < defs.size(); j++) {
+				if (defs.get(j).getLength(args.length) == 0) {
+					defs.remove(j);
+					j--;
+					continue;
+				}
+				int i = 0, k = 0;
+				for (; i < args.length; i++, k++) {
+					if (!defs.get(j).valid(k, args[i])) {
+						if (!defs.get(j).isOptional(k)) {
+							defs.remove(j);
+							j--;
+							continue defLoop;
+						}else{
+							i--;
+							continue;
+						}
 					}
 				}
-			}
-			if (k != defs.get(j).getLength(k)) {
-				defs.remove(j);
-				j--;
+				if (k != defs.get(j).getLength(k)) {
+					defs.remove(j);
+					j--;
+				}
 			}
 		}
-		if (args.length == 0 || defs.size() == 0) {
+		if (defs.size() == 0) {
 			printPage(sender, 1);
 		}else{
 			ExecutableDefinition def = defs.get(0);
