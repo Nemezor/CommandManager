@@ -337,7 +337,7 @@ public class Executable extends org.bukkit.command.Command {
 					return true;
 				}
 			}
-			if (def.getPermission() != null && !sender.hasPermission(def.getPermission())) {
+			if (def.getPermission() != null && !def.getPermission().equals("null") && !sender.hasPermission(def.getPermission())) {
 				sender.sendMessage(CommandManager.noPermissionFormatting + "You do not have permission to execute this command.");
 				return true;
 			}
