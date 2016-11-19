@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.logging.Level;
 
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -161,7 +162,7 @@ public class ExecutableDefinition {
 				return (boolean) target.invoke(methodContainer, args);
 			}
 		} catch (Exception e) {
-			sender.sendMessage(CommandManager.helpInvalidPageFormatting + "An internal error occured, please contact the server administrator and/or report a bug.");
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&', CommandManager.helpInvalidPageFormatting + "An internal error occured, please contact the server administrator and/or report a bug."));
 			plugin.getLogger().log(Level.WARNING, "Runtime Error: invalid method");
 			e.printStackTrace();
 			return true;

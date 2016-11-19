@@ -92,12 +92,12 @@ public class CommandManager {
 	public static boolean errors = false;
 
 	/* Switches for color and formatting in the built-in help message and pagination text */
-	public static String helpDescriptionFormatting = "�b";
-	public static String helpUsageFormatting = "�6";
-	public static String helpPageHeaderFormatting = "�a";
-	public static String helpInvalidPageFormatting = "�c";
-	public static String noPermissionFormatting = "�c";
-	public static String notAllowedFormatting = "�c";
+	public static String helpDescriptionFormatting = "&b";
+	public static String helpUsageFormatting = "&6";
+	public static String helpPageHeaderFormatting = "&a";
+	public static String helpInvalidPageFormatting = "&c";
+	public static String noPermissionFormatting = "&c";
+	public static String notAllowedFormatting = "&c";
 	
 	/**
 	 * Registers a command from a String of source code
@@ -454,13 +454,6 @@ public class CommandManager {
 					return false;
 				}
 			/* typical escape sequences and such */
-			}else if (current == '&' && currentProp == Property.HELP) {
-				if (previous == '\\') {
-					buffer.append('&');
-				}else{
-					/* for color codes and formatting */
-					buffer.append('�');
-				}
 			}else if (current == 'n' && currentProp == Property.HELP) {
 				if (previous == '\\') {
 					buffer.append('\n');

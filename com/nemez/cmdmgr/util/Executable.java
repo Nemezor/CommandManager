@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -338,21 +339,21 @@ public class Executable extends org.bukkit.command.Command {
 				}
 			}
 			if (def.getPermission() != null && !def.getPermission().equals("null") && !sender.hasPermission(def.getPermission())) {
-				sender.sendMessage(CommandManager.noPermissionFormatting + "You do not have permission to execute this command.");
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', CommandManager.noPermissionFormatting + "You do not have permission to execute this command."));
 				return true;
 			}
 			if (def.getExecType() == Type.PLAYER) {
 				if (!(sender instanceof Player)) {
-					sender.sendMessage(CommandManager.notAllowedFormatting + "Only players are allowed to run this command.");
+					sender.sendMessage(ChatColor.translateAlternateColorCodes('&', CommandManager.notAllowedFormatting + "Only players are allowed to run this command."));
 					return true;
 				}
 			}else if (def.getExecType() == Type.CONSOLE) {
 				if (sender instanceof Player) {
-					sender.sendMessage(CommandManager.notAllowedFormatting + "Only console is allowed to run this command.");
+					sender.sendMessage(ChatColor.translateAlternateColorCodes('&', CommandManager.notAllowedFormatting + "Only console is allowed to run this command."));
 					return true;
 				}
 			}else if (def.getExecType() == Type.NOBODY) {
-				sender.sendMessage(CommandManager.notAllowedFormatting + "Nobody can run this command.");
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', CommandManager.notAllowedFormatting + "Nobody can run this command."));
 				return true;
 			}
 			ArrayList<Object> arguments = new ArrayList<Object>();
@@ -385,16 +386,16 @@ public class Executable extends org.bukkit.command.Command {
 	private void printPage(CommandSender sender, int page) {
 		page--;
 		if (page < 0 || page >= help.size()) {
-			sender.sendMessage(CommandManager.helpInvalidPageFormatting + "Non-existant page (" + (page + 1) + ").\nThere are " + help.size() + " pages.");
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&', CommandManager.helpInvalidPageFormatting + "Non-existant page (" + (page + 1) + ").\nThere are " + help.size() + " pages."));
 		}else{
 			HelpPageCommand[] pageData = help.get(page);
-			sender.sendMessage(CommandManager.helpPageHeaderFormatting + "### Help Page " + (page + 1) + "/" + (help.size()) + " ###");
+			sender.sendMessage(ChatColor.translateAlternateColorCodes('&', CommandManager.helpPageHeaderFormatting + "### Help Page " + (page + 1) + "/" + (help.size()) + " ###"));
 			for (HelpPageCommand c : pageData) {
 				if (c != null) {
 					if (c.type == null || c.type == Type.BOTH || (c.type == Type.CONSOLE && !(sender instanceof Player)) || (c.type == Type.PLAYER && sender instanceof Player)) {
-						if (c.permission == null || sender.hasPermission(c.permission)) {
-							sender.sendMessage(CommandManager.helpUsageFormatting + c.usage);
-							sender.sendMessage(CommandManager.helpDescriptionFormatting + c.description);
+						if (c.permission == null || c.permission.equals("null") || sender.hasPermission(c.permission)) {
+							sender.sendMessage(ChatColor.translateAlternateColorCodes('&', CommandManager.helpUsageFormatting + c.usage));
+							sender.sendMessage(ChatColor.translateAlternateColorCodes('&', CommandManager.helpDescriptionFormatting + c.description));
 						}
 					}
 				}
